@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hackatime Garden — Grow Your Code Plant</title>
+  <meta name="description" content="Watch your pixel-art plant grow as you code more hours on Hackatime. A Mario-themed single-page tracker." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --mario-red: #E52521;
+      --mario-red-dark: #AD1B1B;
+      --mario-blue: #049CD8;
+      --mario-blue-dark: #0370A0;
+      --mario-yellow: #FBD000;
+      --mario-gold: #E5A100;
+      --mario-green: #43B047;
+      --mario-green-dark: #2D8031;
+      --mario-green-pipe: #3CB440;
+      --mario-green-pipe-dark: #20742A;
+      --mario-brown: #C84C09;
+      --mario-brown-dark: #8C3605;
+      --mario-skin: #FBB884;
+      --mario-white: #F8F8F8;
+      --mario-black: #000000;
+      --bg-sky: #6B88FF;
+      --bg-night: #0C0C2C;
+      --bg-underground: #0C0C28;
+      --bg-card: rgba(12, 12, 40, 0.85);
+      --bg-card-hover: rgba(20, 20, 60, 0.9);
+      --border-brick: var(--mario-brown);
+      --border-block: var(--mario-yellow);
+
+      --text-primary: #FFFFFF;
+      --text-secondary: #A0B8FF;
+      --text-muted: #6880C0;
+
+      --font-pixel: 'Press Start', monospace;
+      --px-border: 4px solid;
+      --transition-bounce: 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html { font-size: 16px; }
+
+    body {
+      font-family: var(--font-pixel);
+      background: var(--bg-night);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+      image-rendering: pixelated;
+    }
+
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      background: linear-gradient(180deg, #000020 0%, #0C0C40 40%, #1A1A5C 70%, #2A2A4C 100%);
+    }
+
+    .star {
+      position: absolute;
+      background: #FFF;
+      animation: twinkle ease-in-out infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; }
+    }
+
+    .particle {
+      position: absolute;
+      width: 7.5px;
+      height: 9.5px;
+      background: var(--mario-yellow);
+      border: 1px solid var(--mario-gold);
+      opacity: 0;
+      animation: float-coin linear;
+    }
+
+    .particle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 3px;
+      height: 6px;
+      background: var(--mario-gold);
+    }
+
+    @keyframes float-coin {
+      0% { opacity: 0; transform: translateY(100vh) rotate(0deg); }
+      10% { opacity: 0.8; }
+      50% { opacity: 1; }
+      90% { opacity: 0.8; }
+      100% { opacity: 0; transform: translateY(-40px) rotate(360deg); }
+    }
+    .bg-ground {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 32px;
+      z-index: 0;
+      background:
+        repeating-linear-gradient(90deg,
+          var(--mario-brown) 0px, var(--mario-brown) 30px,
+          var(--mario-brown-dark) 30px, var(--mario-brown-dark) 32px
+        );
+      border-top: 4px solid var(--mario-brown-dark);
+      image-rendering: pixelated;
+    }
+
+    .bg-ground::before {
+      content: '';
+      position: absolute;
+      top: -32px;
+      left: 0;
+      right: 0;
+      height: 32px;
+      background:
+        repeating-linear-gradient(90deg,
+          #8B5E3C 0px, #8B5E3C 30px,
+          #6B4226 30px, #6B4226 32px
+        );
+      border-top: 4px solid #6B4226;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem 1rem 5rem;
+    }
+  .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: title-drop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .header h1 {
+      font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+      color: var(--mario-white);
+      text-shadow:
+        3px 3px 0 var(--mario-red),
+        6px 6px 0 var(--mario-red-dark);
+      letter-spacing: 3px;
+      margin-bottom: 0.75rem;
+      line-height: 1.8;
+    }
+
+    .header p {
+      color: var(--mario-yellow);
+      font-size: 0.55rem;
+      letter-spacing: 1px;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    @keyframes title-drop {
+      from { opacity: 0; transform: translateY(-30px) scale(0.9); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .pixel-box {
+      position: relative;
+      background: var(--bg-card);
+      border: 4px solid var(--mario-blue);
+      outline: 4px solid var(--mario-blue-dark);
+      outline-offset: 0px;
+    }
+
+    .pixel-box-red {
+      border-color: var(--mario-red);
+      outline-color: var(--mario-red-dark);
+    }
+
+    .pixel-box-yellow {
+      border-color: var(--mario-yellow);
+      outline-color: var(--mario-gold);
+    }
+
+    .pixel-box-green {
+      border-color: var(--mario-green);
+      outline-color: var(--mario-green-dark);
+    }
+
+    .setup-panel {
+      background: var(--bg-card);
+      border: 4px solid var(--mario-yellow);
+      outline: 4px solid var(--mario-gold);
+      outline-offset: 0px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 480px;
+      animation: block-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    }
+
+    .setup-panel h2 {
+      font-size: 0.6rem;
+      color: var(--mario-yellow);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    .setup-panel h2 .icon { font-size: 1rem; }
+
+    .field-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 0.55rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #0C0C28;
+      border: 3px solid var(--mario-blue);
+      color: var(--text-primary);
+      font-family: var(--font-pixel);
+      font-size: 0.6rem;
+      transition: var(--transition-bounce);
+      outline: none;
+    }
+
+    .field-group input:focus {
+      border-color: var(--mario-yellow);
+      box-shadow: 0 0 0 3px rgba(251, 208, 0, 0.3);
+    }
+
+    .field-group input::placeholder {
+      color: var(--text-muted);
+      font-size: 0.5rem;
+    }
+
+    .btn-primary {
+      width: 100%;
+      padding: 1rem;
+      background: var(--mario-red);
+      border: 4px solid var(--mario-red-dark);
+      color: #fff;
+      font-family: var(--font-pixel);
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: var(--transition-bounce);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+    }
+
+    .btn-primary:hover {
+      background: #FF3030;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 0 var(--mario-red-dark);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .setup-hint {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: rgba(251, 208, 0, 0.08);
+      border: 2px solid var(--mario-gold);
+      font-size: 0.5rem;
+      color: var(--mario-yellow);
+      line-height: 2;
+    }
+
+    .setup-hint a {
+      color: var(--mario-yellow);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @keyframes block-appear {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .dashboard {
+      display: none;
+      width: 100%;
+      max-width: 800px;
+      animation: block-appear 0.4s ease-out;
+    }
+
+    .dashboard.active { display: block; }
+    .setup-panel.hidden { display: none; }
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      padding: 0.6rem 1rem;
+      background: var(--bg-card);
+      border: 3px solid var(--mario-blue);
+    }
+
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.55rem;
+      color: var(--text-secondary);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background: var(--mario-green);
+      border: 2px solid var(--mario-green-dark);
+      animation: status-blink 1.5s step-end infinite;
+    }
+
+    .status-dot.error {
+      background: var(--mario-red);
+      border-color: var(--mario-red-dark);
+    }
+
+    @keyframes status-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .btn-disconnect {
+      padding: 0.35rem 0.7rem;
+      background: transparent;
+      border: 2px solid var(--mario-red);
+      color: var(--mario-red);
+      font-family: var(--font-pixel);
+      font-size: 0.5rem;
+      cursor: pointer;
+      transition: var(--transition-bounce);
+    }
+
+    .btn-disconnect:hover {
+      background: var(--mario-red);
+      color: #fff;
+    }
+    .plant-scene {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 2rem;
+      margin-bottom: 1.5rem;
+      background:
+        linear-gradient(180deg, rgba(0,0,32,0.6) 0%, rgba(0,0,64,0.3) 100%);
+      border: 4px solid var(--mario-green);
+      outline: 4px solid var(--mario-green-dark);
+      outline-offset: 0px;
+      overflow: hidden;
+      min-height: 420px;
+    }
+    .plant-scene::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 24px;
+      background: repeating-linear-gradient(90deg,
+        #5B8731 0px, #5B8731 15px,
+        #4A7028 15px, #4A7028 16px
+      );
+      border-top: 4px solid #3A5A1E;
+    }
+
+    .stage-label {
+      font-size: 0.5rem;
+      letter-spacing: 2px;
+      color: var(--mario-yellow);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+    }
+
+    .stage-name {
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      color: var(--mario-white);
+      margin-bottom: 1.5rem;
+      text-shadow:
+        2px 2px 0 var(--mario-green-dark),
+        4px 4px 0 rgba(0,0,0,0.3);
+    }
+
+    .plant-svg {
+      width: 200px;
+      height: 260px;
+      transition: all 0.5s ease;
+      filter: drop-shadow(0 0 8px rgba(67, 176, 71, 0.3));
+    }
+
+    .progress-section {
+      width: 100%;
+      max-width: 400px;
+      margin-top: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .progress-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+      font-size: 0.5rem;
+      color: var(--text-muted);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 16px;
+      background: #1A1A3C;
+      border: 3px solid var(--mario-blue-dark);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: repeating-linear-gradient(90deg,
+        var(--mario-green) 0px, var(--mario-green) 8px,
+        var(--mario-green-dark) 8px, var(--mario-green-dark) 10px
+      );
+      transition: width 1s steps(20);
+      position: relative;
+    }
+
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #8FFF8F;
+      animation: bar-pulse 0.8s step-end infinite;
+    }
+
+    @keyframes bar-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 4px solid var(--mario-blue);
+      padding: 1.1rem;
+      transition: var(--transition-bounce);
+      position: relative;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--mario-yellow);
+      box-shadow: 0 4px 0 var(--mario-gold);
+    }
+
+    .stat-card .label {
+      font-size: 0.45rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.6rem;
+    }
+
+    .stat-card .value {
+      font-size: clamp(0.7rem, 2vw, 0.9rem);
+      color: var(--mario-white);
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+      word-break: break-word;
+    }
+
+    .stat-card .sub {
+      font-size: 0.45rem;
+      color: var(--text-secondary);
+      margin-top: 0.4rem;
+    }
+
+    .stat-card.highlight {
+      border-color: var(--mario-yellow);
+      outline: 3px solid var(--mario-gold);
+      outline-offset: 0px;
+    }
+
+    .stat-card.highlight .value {
+      color: var(--mario-yellow);
+      text-shadow: 2px 2px 0 var(--mario-gold);
+    }
+
+    .stat-card.highlight::before {
+      content: '?';
+      position: absolute;
+      top: -2px;
+      right: 6px;
+      font-size: 0.6rem;
+      color: var(--mario-gold);
+      opacity: 0.3;
+      text-shadow: none;
+    }
+
+    .timeline {
+      background: var(--bg-card);
+      border: 4px solid var(--mario-green);
+      outline: 3px solid var(--mario-green-dark);
+      outline-offset: 0px;
+      padding: 1.5rem;
+    }
+
+    .timeline h3 {
+      font-size: 0.5rem;
+      color: var(--mario-green);
+      letter-spacing: 1px;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+    }
+
+    .timeline-stages {
+      display: flex;
+      gap: 0;
+      position: relative;
+    }
+
+    .timeline-stage {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      padding-top: 1.5rem;
+    }
+
+    .timeline-stage::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: #1A1A3C;
+    }
+
+    .timeline-stage:first-child::before { left: 50%; }
+    .timeline-stage:last-child::before { right: 50%; }
+
+    .timeline-stage.reached::before {
+      background: var(--mario-green);
+    }
+
+    .timeline-stage .dot {
+      position: absolute;
+      top: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 14px;
+      height: 14px;
+      background: #1A1A3C;
+      border: 3px solid #3A3A5C;
+      z-index: 1;
+    }
+
+    .timeline-stage.reached .dot {
+      background: var(--mario-green);
+      border-color: var(--mario-green-dark);
+    }
+
+    .timeline-stage.current .dot {
+      background: var(--mario-yellow);
+      border-color: var(--mario-gold);
+      animation: coin-spin 1s step-end infinite;
+    }
+
+    @keyframes coin-spin {
+      0%, 100% { background: var(--mario-yellow); }
+      50% { background: var(--mario-gold); }
+    }
+
+    .timeline-stage .stage-icon {
+      font-size: 1rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .timeline-stage .stage-title {
+      font-size: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .timeline-stage.reached .stage-title,
+    .timeline-stage.current .stage-title {
+      color: var(--text-primary);
+    }
+
+    .timeline-stage .stage-hrs {
+      font-size: 0.4rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    .error-msg {
+      display: none;
+      padding: 0.8rem;
+      background: rgba(229, 37, 33, 0.15);
+      border: 3px solid var(--mario-red);
+      color: var(--mario-red);
+      font-size: 0.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .error-msg.visible { display: block; }
+
+    .loader {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 3rem;
+    }
+
+    .loader.active { display: flex; }
+
+    .loader-spinner {
+      width: 24px;
+      height: 28px;
+      background: var(--mario-yellow);
+      border: 3px solid var(--mario-gold);
+      animation: spin-coin 0.6s steps(4) infinite;
+    }
+
+    @keyframes spin-coin {
+      0% { transform: scaleX(1); }
+      25% { transform: scaleX(0.3); }
+      50% { transform: scaleX(1); }
+      75% { transform: scaleX(0.3); }
+      100% { transform: scaleX(1); }
+    }
+    @media (max-width: 600px) {
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .timeline-stage .stage-title {
+        font-size: 0.35rem;
+      }
+
+      .plant-scene { min-height: 350px; padding: 1.5rem 1rem 1.5rem; }
+    }
+
+    .refresh-info {
+      font-size: 0.45rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: 2px solid var(--mario-blue);
+      color: var(--mario-blue);
+      padding: 0.3rem 0.6rem;
+      font-family: var(--font-pixel);
+      font-size: 0.45rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+      transition: var(--transition-bounce);
+    }
+
+    .btn-refresh:hover {
+      background: var(--mario-blue);
+      color: #fff;
+    }
+
+    .cloud {
+      position: fixed;
+      z-index: 0;
+      opacity: 0.15;
+      animation: cloud-float linear infinite;
+    }
+
+    .cloud svg { display: block; }
+
+    @keyframes cloud-float {
+      from { transform: translateX(110vw); }
+      to { transform: translateX(-200px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-canvas" id="bgCanvas"></div>
+  <div class="bg-ground"></div>
+  <div class="cloud" id="cloud1" style="top: 8%;">
+    <svg width="80" height="40" viewBox="0 0 10 5" shape-rendering="crispEdges">
+      <rect x="2" y="3" width="6" height="2" fill="#fff"/>
+      <rect x="1" y="2" width="8" height="1" fill="#fff"/>
+      <rect x="3" y="1" width="2" height="1" fill="#fff"/>
+      <rect x="6" y="1" width="2" height="1" fill="#fff"/>
+      <rect x="4" y="0" width="1" height="1" fill="#fff"/>
+    </svg>
+  </div>
+  <div class="cloud" id="cloud2" style="top: 18%;">
+    <svg width="64" height="32" viewBox="0 0 8 4" shape-rendering="crispEdges">
+      <rect x="1" y="2" width="6" height="2" fill="#fff"/>
+      <rect x="0" y="1" width="8" height="1" fill="#fff"/>
+      <rect x="2" y="0" width="2" height="1" fill="#fff"/>
+      <rect x="5" y="0" width="2" height="1" fill="#fff"/>
+    </svg>
+  </div>
+  <div class="app">
+    <header class="header">
+      <h1>★ HACKATIME GARDEN ★</h1>
+      <p>START CODING TO GROW YOUR PIXLPLANT</p>
+    </header>
+    <section class="setup-panel" id="setupPanel">
+      <h2><span class="icon"></span></h2>
+      <div class="field-group">
+        <label for="inputApiKey">API KEY</label>
+        <input type="password" id="inputApiKey" placeholder="Paste your API key" autocomplete="off" value="66ddfc04-79f7-4d8a-9357-d0d2674c4726" />
+      </div>
+      <button class="btn-primary" id="btnConnect">▶ START GAME</button>
+      <div class="setup-hint">
+        find your api key here
+        <a href="https://hackatime.hackclub.com/my/wakatime_setup" target="_blank" rel="noopener">
+          hackatime.hackclub.com
+        </a>
+      </div>
+    </section>
+
+    <section class="dashboard" id="dashboard">
+      <div class="status-bar">
+        <div class="status-left">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Connected as —</span>
+        </div>
+        <button class="btn-disconnect" id="btnDisconnect">× QUIT</button>
+      </div>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="loader" id="loader">
+        <div class="loader-spinner"></div>
+      </div>
+      <div class="plant-scene" id="plantScene">
+        <div class="stage-label" id="stageLabel">WORLD 0-5</div>
+        <div class="stage-name" id="stageName">Empty Pipe</div>
+        <svg class="plant-svg" id="plantSVG" viewBox="0 0 20 26" shape-rendering="crispEdges">
+          <rect x="3"  y="19" width="14" height="1" fill="#3CB440"/>
+          <rect x="3"  y="20" width="14" height="1" fill="#2D8031"/>
+          <rect x="4"  y="21" width="12" height="1" fill="#3CB440"/>
+          <rect x="4"  y="22" width="12" height="1" fill="#20742A"/>
+          <rect x="4"  y="23" width="12" height="1" fill="#3CB440"/>
+          <rect x="4"  y="24" width="12" height="1" fill="#20742A"/>
+          <rect x="5"  y="21" width="2"  height="4" fill="#5BD45F" opacity="0.4"/>          <rect x="4"  y="19" width="2"  height="1" fill="#5BD45F" opacity="0.5"/>
+          <rect x="5"  y="18" width="10" height="1" fill="#8B5E3C"/>
+          <rect x="6"  y="17" width="8"  height="1" fill="#6B4226" opacity="0.5"/>
+          <g id="plantParts"></g>
+        </svg>
+
+        <div class="progress-section">
+          <div class="progress-labels">
+            <span id="progressCurrentLabel">0 hrs</span>
+            <span id="progressNextLabel">Next: 10 hrs</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card highlight" id="cardTotalHours">
+          <div class="label">Total Coded</div>
+          <div class="value" id="valTotalHours">—</div>
+          <div class="sub" id="subTotalHours">loading...</div>
+        </div>
+        <div class="stat-card" id="cardDailyAvg">
+          <div class="label">This Week</div>
+          <div class="value" id="valDailyAvg">—</div>
+          <div class="sub">this week</div>
+        </div>
+        <div class="stat-card" id="cardTopLang">
+          <div class="label">Top Language</div>
+          <div class="value" id="valTopLang">—</div>
+          <div class="sub" id="subTopLang">most used</div>
+        </div>
+        <div class="stat-card" id="cardTopProject">
+          <div class="label">Top Project</div>
+          <div class="value" id="valTopProject">—</div>
+          <div class="sub" id="subTopProject">most active</div>
+        </div>
+      </div>
+      <div class="timeline">
+        <h3>WORLD MAP</h3>
+        <div class="timeline-stages" id="timelineStages">
+        </div>
+      </div>
+
+      <div class="refresh-info">
+        Auto-refreshes every 5 minutes
+        <button class="btn-refresh" id="btnRefresh">↻ RETRY</button>
+      </div>
+
+    </section>
+  </div>
+  <script>
+    const STAGES = [
+      { name: 'Empty Pipe',     icon: '🟢', minHrs: 0,   desc: 'Plant your first seed' },
+      { name: 'Tiny Sprout',    icon: '🌱', minHrs: 5,   desc: 'Life begins!' },
+      { name: 'Young Seedling', icon: '🪴', minHrs: 15,  desc: 'Growing roots' },
+      { name: 'Leafy Plant',    icon: '🌿', minHrs: 40,  desc: 'Strong and green' },
+      { name: 'Fire Flower',    icon: '🌸', minHrs: 80,  desc: 'Power up!' },
+      { name: 'Super Star',     icon: '⭐', minHrs: 150, desc: 'Invincible!' },
+    ];
+    const $ = id => document.getElementById(id);
+    const setupPanel   = $('setupPanel');
+    const dashboard    = $('dashboard');
+    const inputKey     = $('inputApiKey');
+    const btnConnect   = $('btnConnect');
+    const btnDisconnect= $('btnDisconnect');
+    const btnRefresh   = $('btnRefresh');
+    const statusDot    = $('statusDot');
+    const statusText   = $('statusText');
+    const errorMsg     = $('errorMsg');
+    const loader       = $('loader');
+    const plantScene   = $('plantScene');
+    const stageLabel   = $('stageLabel');
+    const stageName    = $('stageName');
+    const plantParts   = $('plantParts');
+    const progressFill = $('progressFill');
+    const progressCurr = $('progressCurrentLabel');
+    const progressNext = $('progressNextLabel');
+
+    let refreshTimer = null;
+    let currentUsername = '';
+    function initBackground() {
+      const canvas = $('bgCanvas');
+      for (let i = 0; i < 50; i++) {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + '%';
+        star.style.top = Math.random() * 80 + '%';
+        const size = Math.random() > 0.7 ? 3 : 2;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.animationDuration = (1.5 + Math.random() * 3) + 's';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        canvas.appendChild(star);
+      }
+      for (let i = 0; i < 8; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDuration = (12 + Math.random() * 15) + 's';
+        p.style.animationDelay = Math.random() * 12 + 's';
+        canvas.appendChild(p);
+    }
+      const cloud1 = $('cloud1');
+      const cloud2 = $('cloud2');
+      if (cloud1) cloud1.style.animationDuration = '45s';
+      if (cloud2) {
+        cloud2.style.animationDuration = '60s';
+        cloud2.style.animationDelay = '15s';
+      }
+    }
+    function saveApiKey(key) {
+      localStorage.setItem('hg_key', key);
+    }
+
+    function loadApiKey() {
+      return localStorage.getItem('hg_key') || '';
+    }
+
+    function clearApiKey() {
+      localStorage.removeItem('hg_key');
+    }
+    async function fetchWeeklyStats(apiKey) {
+      const url = 'https://hackatime.hackclub.com/api/hackatime/v1/users/current/stats/last_7_days';
+      const resp = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`API ${resp.status}: ${txt.slice(0, 120)}`);
+      }
+      return resp.json();
+    }
+    async function fetchAllTimeStats(apiKey, userId) {
+      const url = `https://hackatime.hackclub.com/api/v1/users/${encodeURIComponent(userId)}/stats`;
+      const resp = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`All-time stats: ${resp.status}`);
+      }
+      return resp.json();
+    }
+    async function fetchAllData(apiKey) {
+      const weekly = await fetchWeeklyStats(apiKey);
+      const wd = weekly.data || weekly;
+      const userId = wd.user_id || wd.username || 'current';
+      let allTime = null;
+      try {
+        allTime = await fetchAllTimeStats(apiKey, userId);
+        const ad = allTime.data || allTime;
+        currentUsername = ad.username || wd.username || userId;
+      } catch (_) {
+        currentUsername = wd.username || userId;
+      }
+
+      return { weekly, allTime };
+    }
+
+    function parseTotalSeconds(data) {
+      const d = data.data || data;
+      if (d.total_seconds != null) return d.total_seconds;
+      if (d.total_seconds_including_other_language != null) return d.total_seconds_including_other_language;
+      if (d.human_readable_total) {
+        return parseHumanTime(d.human_readable_total);
+      }
+      return 0;
+    }
+
+    function parseHumanTime(str) {
+      let secs = 0;
+      const hm = str.match(/(\d+)\s*hrs?/);
+      const mm = str.match(/(\d+)\s*mins?/);
+      const sm = str.match(/(\d+)\s*secs?/);
+      if (hm) secs += parseInt(hm[1]) * 3600;
+      if (mm) secs += parseInt(mm[1]) * 60;
+      if (sm) secs += parseInt(sm[1]);
+      return secs;
+    }
+
+    function formatHours(secs) {
+      const h = secs / 3600;
+      if (h < 1) return Math.round(secs / 60) + ' min';
+      if (h < 10) return h.toFixed(1) + ' hrs';
+      return Math.round(h) + ' hrs';
+    }
+
+    function formatHoursLong(secs) {
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      if (h === 0) return `${m} minutes`;
+      return `${h} hrs ${m} min`;
+    }
+    function getStage(hours) {
+      let stage = 0;
+      for (let i = STAGES.length - 1; i >= 0; i--) {
+        if (hours >= STAGES[i].minHrs) { stage = i; break; }
+      }
+      return stage;
+    }
+    function drawPlant(stageIdx) {
+      plantParts.innerHTML = '';
+      const px = (x, y, color, opacity) => {
+        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        r.setAttribute('x', x);
+        r.setAttribute('y', y);
+        r.setAttribute('width', 1);
+        r.setAttribute('height', 1);
+        r.setAttribute('fill', color);
+        if (opacity) r.setAttribute('opacity', opacity);
+        r.style.animation = `pixelPop 0.4s ease-out ${Math.random() * 0.4}s both`;
+        plantParts.appendChild(r);
+      };
+      if (!document.getElementById('svgAnimStyle')) {
+        const sty = document.createElement('style');
+        sty.id = 'svgAnimStyle';
+        sty.textContent = `
+          @keyframes pixelPop {
+            from { opacity: 0; transform: scale(0); }
+            50% { transform: scale(1.3); }
+            to { opacity: 1; transform: scale(1); }
+          }
+        `;
+        document.head.appendChild(sty);
+      }
+
+      if (stageIdx >= 1) {
+        px(10, 17, '#3CB440');
+        px(10, 16, '#43B047');
+        px(9,  15, '#5BD45F');
+        px(11, 15, '#5BD45F');
+        px(10, 15, '#43B047');
+      }
+
+      if (stageIdx >= 2) {
+        px(10, 14, '#3CB440');
+        px(10, 13, '#3CB440');
+        px(8,  14, '#2D8031');
+        px(9,  14, '#43B047');
+        px(11, 14, '#43B047');
+        px(12, 14, '#2D8031');
+        px(9,  12, '#5BD45F');
+        px(11, 12, '#5BD45F');
+        px(10, 12, '#43B047');
+      }
+
+      if (stageIdx >= 3) {
+        px(10, 11, '#3CB440');
+        px(10, 10, '#3CB440');
+        px(7,  13, '#20742A');
+        px(8,  13, '#2D8031');
+        px(12, 13, '#2D8031');
+        px(13, 13, '#20742A');
+        px(8,  11, '#43B047');
+        px(9,  11, '#5BD45F');
+        px(11, 11, '#5BD45F');
+        px(12, 11, '#43B047');
+        px(7,  10, '#2D8031');
+        px(8,  10, '#43B047');
+        px(12, 10, '#43B047');
+        px(13, 10, '#2D8031');
+        px(9,  9,  '#5BD45F');
+        px(10, 9,  '#43B047');
+        px(11, 9,  '#5BD45F');
+      }
+
+      if (stageIdx >= 4) {
+        px(10, 8, '#3CB440');
+        px(10, 7, '#20742A');
+        px(6,  11, '#20742A');
+        px(14, 11, '#20742A');
+        px(7,  9,  '#43B047');
+        px(13, 9,  '#43B047');
+        px(6,  8,  '#5BD45F');
+        px(14, 8,  '#5BD45F');
+        px(8,  8, '#E52521');
+        px(12, 8, '#E52521');
+        px(9,  7, '#FBD000');
+        px(11, 7, '#FBD000');
+        px(10, 6, '#E52521');
+      }
+
+      if (stageIdx >= 5) {
+        px(10, 5, '#20742A');
+        px(10, 4, '#20742A');
+        px(10, 2, '#FBD000');
+        px(9,  3, '#FBD000');
+        px(10, 3, '#E5A100');
+        px(11, 3, '#FBD000');
+        px(8,  3, '#E5A100');
+        px(12, 3, '#E5A100');
+        px(9,  2, '#FBD000');
+        px(11, 2, '#FBD000');
+        px(10, 1, '#FBD000');
+        px(9,  2, '#000');
+        px(11, 2, '#000');
+        px(6,  7, '#E52521');
+        px(5,  7, '#FBD000');
+        px(6,  6, '#FBD000');
+        px(14, 7, '#E52521');
+        px(15, 7, '#FBD000');
+        px(14, 6, '#FBD000');
+        px(5,  9,  '#2D8031');
+        px(15, 9,  '#2D8031');
+        px(5,  10, '#43B047');
+        px(15, 10, '#43B047');
+      }
+    }
+    function renderTimeline(currentStage) {
+      const container = $('timelineStages');
+      container.innerHTML = '';
+      STAGES.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.className = 'timeline-stage';
+        if (i < currentStage) div.classList.add('reached');
+        if (i === currentStage) div.classList.add('reached', 'current');
+        div.innerHTML = `
+          <span class="dot"></span>
+          <div class="stage-icon">${s.icon}</div>
+          <div class="stage-title">${s.name}</div>
+          <div class="stage-hrs">${s.minHrs}+ hrs</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function updateUI({ weekly, allTime }) {
+      const primary = allTime || weekly;
+      const d = primary.data || primary;
+      const totalSecs = parseTotalSeconds(primary);
+      const totalHrs = totalSecs / 3600;
+      const stageIdx = getStage(totalHrs);
+      const wd = (weekly.data || weekly);
+      const weekSecs = wd.total_seconds || 0;
+      stageLabel.textContent = `WORLD ${stageIdx}-${STAGES.length - 1}`;
+      stageName.textContent = STAGES[stageIdx].name;
+      drawPlant(stageIdx);
+      const nextStage = stageIdx < STAGES.length - 1 ? STAGES[stageIdx + 1] : null;
+      const currMin = STAGES[stageIdx].minHrs;
+      if (nextStage) {
+        const range = nextStage.minHrs - currMin;
+        const progress = Math.min(((totalHrs - currMin) / range) * 100, 100);
+        progressFill.style.width = progress + '%';
+        progressCurr.textContent = formatHours(totalSecs);
+        progressNext.textContent = `Next: ${nextStage.minHrs} hrs`;
+      } else {
+        progressFill.style.width = '100%';
+        progressCurr.textContent = formatHours(totalSecs);
+        progressNext.textContent = 'MAX LEVEL!';
+      }
+      $('valTotalHours').textContent = formatHours(totalSecs);
+      $('subTotalHours').textContent = formatHoursLong(totalSecs) + ' all-time';
+      $('valDailyAvg').textContent = formatHours(weekSecs);
+      $('subTotalHours').parentNode.querySelector('.sub').textContent = formatHoursLong(totalSecs) + ' all-time';
+      const avgCardSub = $('cardDailyAvg').querySelector('.sub');
+      if (avgCardSub) avgCardSub.textContent = 'this week';
+      const langSource = (d.languages && d.languages.length > 0) ? d : wd;
+      if (langSource.languages && langSource.languages.length > 0) {
+        const realLangs = langSource.languages.filter(l => l.name !== 'unknown' && l.name !== 'Other');
+        const topLang = realLangs.length > 0 ? realLangs[0] : langSource.languages[0];
+        $('valTopLang').textContent = topLang.name || '—';
+        $('subTopLang').textContent = topLang.text || 'most used';
+      }
+      const projSource = (wd.projects && wd.projects.length > 0) ? wd : d;
+      if (projSource.projects && projSource.projects.length > 0) {
+        $('valTopProject').textContent = projSource.projects[0].name || '—';
+        $('subTopProject').textContent = projSource.projects[0].text || 'most active';
+      }
+      renderTimeline(stageIdx);
+      plantScene.style.display = '';
+      loader.classList.remove('active');
+    }
+    async function refresh() {
+      const key = loadApiKey();
+      if (!key) return;
+
+      errorMsg.classList.remove('visible');
+      statusDot.classList.remove('error');
+
+      try {
+        const result = await fetchAllData(key);
+        updateUI(result);
+        statusText.textContent = `PLAYER: ${currentUsername}`;
+      } catch (err) {
+        errorMsg.textContent = '⚠ ' + err.message;
+        errorMsg.classList.add('visible');
+        statusDot.classList.add('error');
+        statusText.textContent = 'GAME OVER — Connection error';
+        loader.classList.remove('active');
+      }
+    }
+    async function connect() {
+      const key = inputKey.value.trim();
+      if (!key) {
+        alert('Please enter your API key.');
+        return;
+      }
+      btnConnect.textContent = 'LOADING...';
+      btnConnect.disabled = true;
+
+      try {
+        const result = await fetchAllData(key);
+        saveApiKey(key);
+
+        setupPanel.classList.add('hidden');
+        dashboard.classList.add('active');
+
+        loader.classList.add('active');
+        updateUI(result);
+        statusText.textContent = `PLAYER: ${currentUsername}`;
+        refreshTimer = setInterval(refresh, 5 * 60 * 1000);
+      } catch (err) {
+        alert('Failed to connect: ' + err.message);
+      } finally {
+        btnConnect.textContent = 'show your pixlplant dashboard';
+        btnConnect.disabled = false;
+      }
+    }
+    function disconnect() {
+      clearApiKey();
+      clearInterval(refreshTimer);
+      currentUsername = '';
+      dashboard.classList.remove('active');
+      setupPanel.classList.remove('hidden');
+      inputKey.value = '';
+    }
+      function init() {
+      initBackground();
+      btnConnect.addEventListener('click', connect);
+      btnDisconnect.addEventListener('click', disconnect);
+      btnRefresh.addEventListener('click', refresh);
+      inputKey.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+      const key = loadApiKey();
+      if (key) {
+        setupPanel.classList.add('hidden');
+        dashboard.classList.add('active');
+        loader.classList.add('active');
+        statusText.textContent = 'LOADING...';
+        refresh();
+        refreshTimer = setInterval(refresh, 5 * 60 * 1000);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
